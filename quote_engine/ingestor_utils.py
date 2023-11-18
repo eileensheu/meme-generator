@@ -37,7 +37,16 @@ class TextIngestor(IngestorInterface):
 
     @classmethod
     def parse(cls, path: str) -> List[QuoteModel]:
-        return []
+        if not cls.can_digest(path):
+            raise Exception('Cannot ingest exception')
+        quotemodel_list = []
+        with open(path, 'r') as f:
+            for line in f.readlines():
+                line_clean = line.strip().replace("\"", "")
+                if line_clean:
+                    body, author = line_clean.split(" - ")
+                    quotemodel_list.append(QuoteModel(body=body, author=author))
+        return quotemodel_list
 
 
 class DocxIngestor(IngestorInterface):
