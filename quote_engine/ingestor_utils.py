@@ -1,4 +1,6 @@
 import abc
+import os
+import subprocess
 import docx
 import pathlib
 
@@ -67,7 +69,20 @@ class PDFIngestor(IngestorInterface):
 
     @classmethod
     def parse(cls, path: str) -> Iterable[QuoteModel]:
-        return []
+        if not cls.can_digest(path):
+            raise Exception('Cannot ingest exception')
+
+        tmp_txt_path = "_tmp_pdf_content.txt"
+        cmd = ['pdftotext', path, tmp_txt_path]
+        process = subprocess.run(cmd)
+        if process.returncode != 0:
+            raise RuntimeError(f"Conversion of {path} from .pdf to .txt has failed.")
+
+        try:
+            with open(tmp_txt_path, 'r') as f:
+                return QuoteModel.from_linestr_iter_gen(f.readlines())
+        finally:
+            os.remove(tmp_txt_path)
 
 
 class CSVIngestor(IngestorInterface):
