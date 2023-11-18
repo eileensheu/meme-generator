@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from pydantic import BaseModel
+from typing import Iterable
 
 
 class QuoteModel(BaseModel):
@@ -8,3 +11,13 @@ class QuoteModel(BaseModel):
     def __str__(self):
         """Return `str(self)`."""
         return f"\"{self.body}\" - {self.author}"
+
+    @classmethod
+    def from_linestr_iter_gen(cls, iterable: Iterable[str]) -> Iterable[QuoteModel]:
+        for linestring in iterable:
+            line_clean = linestring.strip().replace("\"", "")
+            if line_clean:
+                body, author = line_clean.split(" - ")
+                yield cls(body=body, author=author)
+            else:
+                return

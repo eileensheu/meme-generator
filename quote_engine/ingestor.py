@@ -1,6 +1,6 @@
 from ingestor_utils import IngestorInterface, TextIngestor, DocxIngestor, PDFIngestor, CSVIngestor
 from quote_model import QuoteModel
-from typing import List
+from typing import Iterable
 
 
 class Ingestor(IngestorInterface):
@@ -11,7 +11,7 @@ class Ingestor(IngestorInterface):
     # This class encapsulates all the ingestors to provide one interface to load any supported file type.
 
     @classmethod
-    def parse(cls, path: str) -> List[QuoteModel]:
+    def parse(cls, path: str) -> Iterable[QuoteModel]:
         for ingestor in cls.ingestors:
             if ingestor.can_digest(path):
                 return ingestor.parse(path)

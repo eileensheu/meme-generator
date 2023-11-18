@@ -2,7 +2,7 @@ import abc
 import docx
 import pathlib
 
-from typing import List
+from typing import Iterable
 from quote_model import QuoteModel
 
 
@@ -22,14 +22,14 @@ class IngestorInterface(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def parse(cls, path: str) -> List[QuoteModel]:
-        """Get a list of QuoteModel digested from the supplied file
+    def parse(cls, path: str) -> Iterable[QuoteModel]:
+        """Get a iterable of QuoteModel digested from the supplied file
 
         Concrete subclasses must override this method to get the parsed
         QuoteModel digested from the supplied file.
 
         :param path: A String path of the file that contains quotes.
-        :return: A list of QuoteModel digested from the supplied file
+        :return: A iterable of QuoteModel digested from the supplied file
         """
         raise NotImplementedError
 
@@ -38,17 +38,12 @@ class TextIngestor(IngestorInterface):
     allowed_file_extensions = [".txt"]
 
     @classmethod
-    def parse(cls, path: str) -> List[QuoteModel]:
+    def parse(cls, path: str) -> Iterable[QuoteModel]:
         if not cls.can_digest(path):
             raise Exception('Cannot ingest exception')
-        quotemodel_list = []
+
         with open(path, 'r') as f:
-            for line in f.readlines():
-                line_clean = line.strip().replace("\"", "")
-                if line_clean:
-                    body, author = line_clean.split(" - ")
-                    quotemodel_list.append(QuoteModel(body=body, author=author))
-        return quotemodel_list
+            return QuoteModel.from_linestr_iter_gen(f.readlines())
 
 
 class DocxIngestor(IngestorInterface):
@@ -56,16 +51,12 @@ class DocxIngestor(IngestorInterface):
 
     # depends on the python-docx library to complete the defined, abstract method signatures to parse DOCX files.
     @classmethod
-    def parse(cls, path: str) -> List[QuoteModel]:
+    def parse(cls, path: str) -> Iterable[QuoteModel]:
         if not cls.can_digest(path):
             raise Exception('Cannot ingest exception')
-        quotemodel_list = []
+
         doc = docx.Document(path)
-        for para in doc.paragraphs:
-            if para.text:
-                body, author = para.text.split(" - ")
-                quotemodel_list.append(QuoteModel(body=body, author=author))
-        return quotemodel_list
+        return QuoteModel.from_linestr_iter_gen([para.text for para in doc.paragraphs])
 
 
 class PDFIngestor(IngestorInterface):
@@ -75,7 +66,7 @@ class PDFIngestor(IngestorInterface):
     allowed_file_extensions = [".pdf"]
 
     @classmethod
-    def parse(cls, path: str) -> List[QuoteModel]:
+    def parse(cls, path: str) -> Iterable[QuoteModel]:
         return []
 
 
@@ -84,6 +75,6 @@ class CSVIngestor(IngestorInterface):
     allowed_file_extensions = [".csv"]
 
     @classmethod
-    def parse(cls, path: str) -> List[QuoteModel]:
+    def parse(cls, path: str) -> Iterable[QuoteModel]:
         return []
 
