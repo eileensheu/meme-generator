@@ -2,7 +2,7 @@
 
 from ingestor import Ingestor
 
-extension = "pdf"
+extension = "csv"
 
 p = "_data/DogQuotes/DogQuotes" + extension.upper() + f".{extension}"
 print(f"\nIngesting {p}")

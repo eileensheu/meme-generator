@@ -2,6 +2,7 @@ import abc
 import os
 import subprocess
 import docx
+import pandas as pd
 import pathlib
 
 from typing import Iterable
@@ -91,5 +92,11 @@ class CSVIngestor(IngestorInterface):
 
     @classmethod
     def parse(cls, path: str) -> Iterable[QuoteModel]:
-        return []
+        if not cls.can_digest(path):
+            raise Exception('Cannot ingest exception')
 
+        data = pd.read_csv(path, header=0).to_dict('split').get('data')
+        if data:
+            return [QuoteModel(body=quote[0], author=quote[1]) for quote in data]
+        else:
+            raise Exception('Failed to read csv with python \"panda\" library.')
