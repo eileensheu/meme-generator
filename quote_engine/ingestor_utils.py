@@ -1,5 +1,7 @@
 import abc
+import docx
 import pathlib
+
 from typing import List
 from quote_model import QuoteModel
 
@@ -55,7 +57,15 @@ class DocxIngestor(IngestorInterface):
     # depends on the python-docx library to complete the defined, abstract method signatures to parse DOCX files.
     @classmethod
     def parse(cls, path: str) -> List[QuoteModel]:
-        return []
+        if not cls.can_digest(path):
+            raise Exception('Cannot ingest exception')
+        quotemodel_list = []
+        doc = docx.Document(path)
+        for para in doc.paragraphs:
+            if para.text:
+                body, author = para.text.split(" - ")
+                quotemodel_list.append(QuoteModel(body=body, author=author))
+        return quotemodel_list
 
 
 class PDFIngestor(IngestorInterface):
