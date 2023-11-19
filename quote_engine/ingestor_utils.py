@@ -6,7 +6,7 @@ import pandas as pd
 import pathlib
 
 from typing import Iterable
-from quote_model import QuoteModel
+from .quote_model import QuoteModel
 
 
 class IngestorInterface(abc.ABC):

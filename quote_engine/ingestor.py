@@ -1,5 +1,5 @@
-from ingestor_utils import IngestorInterface, TextIngestor, DocxIngestor, PDFIngestor, CSVIngestor
-from quote_model import QuoteModel
+from .ingestor_utils import IngestorInterface, TextIngestor, DocxIngestor, PDFIngestor, CSVIngestor
+from .quote_model import QuoteModel
 from typing import Iterable
 
 
