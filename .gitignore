@@ -161,3 +161,4 @@ cython_debug/
 
 # temporary image output dir
 tmp/
+static/

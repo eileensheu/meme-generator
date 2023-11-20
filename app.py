@@ -1,9 +1,9 @@
 import random
 import os
 import requests
-from flask import Flask, render_template, abort, request
-
-# @TODO Import your Ingestor and MemeEngine classes
+from flask import Flask, render_template, after_this_request, request
+from quote_engine.ingestor import Ingestor
+from meme_engine.meme_engine import MemeEngine
 
 app = Flask(__name__)
 
@@ -18,15 +18,15 @@ def setup():
                    './_data/DogQuotes/DogQuotesPDF.pdf',
                    './_data/DogQuotes/DogQuotesCSV.csv']
 
-    # TODO: Use the Ingestor class to parse all files in the
-    # quote_files variable
-    quotes = None
+    quotes = []
+    for quote_file in quote_files:
+        quotes.extend(Ingestor.parse(quote_file))
 
     images_path = "./_data/photos/dog/"
 
-    # TODO: Use the pythons standard library os class to find all
-    # images within the images images_path directory
-    imgs = None
+    imgs = []
+    for root, _, files in os.walk(images_path):
+        imgs = [os.path.join(root, name) for name in files]
 
     return quotes, imgs
 
@@ -38,13 +38,9 @@ quotes, imgs = setup()
 def meme_rand():
     """ Generate a random meme """
 
-    # @TODO:
-    # Use the random python standard library class to:
-    # 1. select a random image from imgs array
-    # 2. select a random quote from the quotes array
+    img = random.choice(imgs)
+    quote = random.choice(quotes)
 
-    img = None
-    quote = None
     path = meme.make_meme(img, quote.body, quote.author)
     return render_template('meme.html', path=path)
 
@@ -65,8 +61,32 @@ def meme_post():
     # 2. Use the meme object to generate a meme using this temp
     #    file and the body and author form paramaters.
     # 3. Remove the temporary saved image.
+    import requests
 
-    path = None
+    image_url = request.form.get('image_url')
+    body = request.form.get('body')
+    author = request.form.get('author')
+    if not image_url:
+        image_url = 'https://static.bimago.pl/mediacache/catalog/product/cache/1/2/146221/image/1500x2240/c0d39395fd4eb0df2112dbf1bd103f89/146221_2.jpg'
+    if not body:
+        body = "Please submit a quote body"
+    if not author:
+        author = "Yours truly, Meme Generator"
+
+    img = "./tmp/downloaded_img.jpg"
+
+    r = requests.get(image_url)
+    if r.status_code == 200:
+        with open(img, 'wb') as f:
+            f.write(r.content)
+    del r
+
+    path = meme.make_meme(img, body, author)
+
+    @after_this_request
+    def cleanup(response):
+        os.remove(img)
+        return response
 
     return render_template('meme.html', path=path)
 
