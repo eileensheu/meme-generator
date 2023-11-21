@@ -9,16 +9,16 @@ BODY_AUTHOR_SHIFT = (0, 0)
 
 
 class TextOnImage:
-    text: str
-    image_draw: ImageDraw.ImageDraw
-    image_font: ImageFont.FreeTypeFont
-    font_size: int
-    textlength: int
-    fill: Tuple[int, int, int]
-    multiline_text: List[str]
-    multiline_textwidth: int
-    multiline_textheight: int
-    multiline_spacing: int
+    _text: str
+    _image_draw: ImageDraw.ImageDraw
+    _image_font: ImageFont.FreeTypeFont
+    _font_size: int
+    _textlength: int
+    _fill: Tuple[int, int, int]
+    _multiline_text: List[str]
+    _multiline_textwidth: int
+    _multiline_textheight: int
+    _multiline_spacing: int
 
     def __init__(
             self,
@@ -28,75 +28,90 @@ class TextOnImage:
             font_size: int = 16,
             fill: Optional[Tuple[int, int, int]] = None,
         ) -> None:
-        self.text = text
-        self.image_draw = image_draw
-        self.image_font = ImageFont.truetype(font, font_size)
-        self.font_size = font_size
-        self.textlength = int(self.image_draw.textlength(self.text, self.image_font, features=["-kern"]))
-        self.fill = fill if fill else (0, 0, 0)
+        self._text = text
+        self._image_draw = image_draw
+        self._image_font = ImageFont.truetype(font, font_size)
+        self._font_size = font_size
+        self._textlength = int(self._image_draw.textlength(self._text, self._image_font, features=["-kern"]))
+        self._fill = fill if fill else (0, 0, 0)
 
-    def set_multiline_text(self, max_textlength):
-        max_char = int(max_textlength / self.font_size * 1.5)
-        self.multiline_text = textwrap.wrap(self.text, width=max_char)
-        self.multiline_textwidth = int(self.image_draw.textlength(self.multiline_text[0], self.image_font, features=["-kern"]))
-        self.multiline_textheight = self.font_size * len(self.multiline_text)
-        self.multiline_spacing = int(self.font_size / 5)
+    @property
+    def textlength(self) -> int:
+        return self._textlength
 
-    def draw_on_image(self, anchor_coord:Tuple[int, int]):
+    @property
+    def multiline_textwidth(self) -> int:
+        return self._multiline_textwidth
+
+    @property
+    def multiline_textheight(self) -> int:
+        return self._multiline_textheight
+
+    def set_multiline_text_attributes(self, max_textlength) -> None:
+        max_char = int(max_textlength / self._font_size * 1.5)
+        self._multiline_text = textwrap.wrap(self._text, width=max_char)
+        self._multiline_textwidth = int(self._image_draw.textlength(self._multiline_text[0], self._image_font, features=["-kern"]))
+        self._multiline_textheight = self._font_size * len(self._multiline_text)
+        self._multiline_spacing = int(self._font_size / 5)
+
+    def draw_on_image(self, anchor_coord: Tuple[int, int]) -> None:
         _coord = anchor_coord
-        _offset = (0, self.font_size)
-        for line in self.multiline_text:
-            self.image_draw.multiline_text(
+        _offset = (0, self._font_size)
+        for line in self._multiline_text:
+            self._image_draw.multiline_text(
                 xy=_coord,
                 text=line,
-                font=self.image_font,
-                fill=self.fill,
+                font=self._image_font,
+                fill=self._fill,
                 stroke_width=1,
                 stroke_fill=(255,255,255),
-                spacing=self.multiline_spacing,
+                spacing=self._multiline_spacing,
             )
             _coord = tuple(map(sum, zip(_coord, _offset)))
 
-class DrawQuoteOnImage:
-    body: TextOnImage
-    author: TextOnImage
-    max_textlength: int
-    quote_bbox: Tuple[int, int]
-    quote_bbox_coord: Tuple[int, int]
+
+class QuoteOnImage:
+    _body: TextOnImage
+    _author: TextOnImage
+    _image_size: Tuple[int, int]
 
     def __init__(self, body: TextOnImage, author: TextOnImage, image_size: Tuple[int, int]) -> None:
-        self.body = body
-        self.author = author
-        self.max_textlength = self._compute_max_textlength(image_size)
-        self._create_multiline_text()
-        self.quote_bbox = self._compute_quote_bbox()
-        self.quote_bbox_coord = self._pick_random_bbox_coord(image_size)
-        self._draw_quote_on_image()
+        self._body = body
+        self._author = author
+        self._image_size = image_size
 
-    def _compute_max_textlength(self, image_size: Tuple[int, int]) -> int:
-        if max(self.body.textlength, self.author.textlength) >= image_size[0]:
-            max_textlength = int(image_size[0] / 1.5)
+    def draw(self) -> None:
+        max_textlength = self._compute_max_textlength()
+        self._body.set_multiline_text_attributes(max_textlength)
+        self._author.set_multiline_text_attributes(max_textlength)
+
+        quote_bbox = self._compute_quote_bbox()
+        quote_bbox_coord = self._pick_random_bbox_coord(quote_bbox)
+
+        self._draw_quote_on_image(quote_bbox_coord)
+
+    def _compute_max_textlength(self) -> int:
+        if max(self._body.textlength, self._author.textlength) >= self._image_size[0]:
+            max_textlength = int(self._image_size[0] / 1.5)
         else:
-            max_textlength = image_size[0]
+            max_textlength = self._image_size[0]
         return max_textlength
 
-    def _create_multiline_text(self) -> None:
-        self.body.set_multiline_text(self.max_textlength)
-        self.author.set_multiline_text(self.max_textlength)
-
     def _compute_quote_bbox(self) -> Tuple[int, int]:
-        bbox_width = max(self.body.multiline_textwidth, self.author.multiline_textwidth + BODY_AUTHOR_SHIFT[0])
-        bbox_height = self.body.multiline_textheight + self.author.multiline_textheight + BODY_AUTHOR_SHIFT[1]
+        bbox_width = max(self._body.multiline_textwidth, self._author.multiline_textwidth + BODY_AUTHOR_SHIFT[0])
+        bbox_height = self._body.multiline_textheight + self._author.multiline_textheight + BODY_AUTHOR_SHIFT[1]
         return (bbox_width, bbox_height)
 
-    def _pick_random_bbox_coord(self, image_size: Tuple[int, int]) -> Tuple[int, int]:
-        max_col_id = image_size[0] - self.quote_bbox[0]
-        max_row_id = image_size[1] - self.quote_bbox[1]
+    def _pick_random_bbox_coord(self, quote_bbox: Tuple[int, int]) -> Tuple[int, int]:
+        max_col_id = self._image_size[0] - quote_bbox[0]
+        max_row_id = self._image_size[1] - quote_bbox[1]
         return (random.randint(0, max_col_id), random.randint(0, max_row_id))
 
-    def _draw_quote_on_image(self) -> None:
-        self.body.draw_on_image(self.quote_bbox_coord)
-        self.author.draw_on_image(tuple(map(sum, zip(self.quote_bbox_coord, (0, self.body.multiline_textheight), BODY_AUTHOR_SHIFT))))
+    def _draw_quote_on_image(self, quote_bbox_coord: Tuple[int, int]) -> None:
+        body_coord = quote_bbox_coord
+        author_coord = tuple(map(sum, zip(quote_bbox_coord, (0, self._body.multiline_textheight), BODY_AUTHOR_SHIFT)))
+        self._body.draw_on_image(body_coord)
+        self._author.draw_on_image(author_coord)
 
 
 class MemeEngine:
@@ -124,18 +139,21 @@ def _resize_image_with_aspect_ratio_maintained(image: Image.Image, max_width_px:
 
 def _add_quote_in_image(image: Image.Image, quote_body: str, quote_author: str) -> None:
     image_draw = ImageDraw.Draw(image)
-    body_text_basic = TextOnImage(
-        text=f"\"{quote_body}\"",
-        image_draw=image_draw,
-        font="LiberationMono-Bold.ttf",
-        font_size=20,
-        fill=(0, 80, 0),
+    quote_on_image = QuoteOnImage(
+        body=TextOnImage(
+            text=f"\"{quote_body}\"",
+            image_draw=image_draw,
+            font="LiberationMono-Bold.ttf",
+            font_size=20,
+            fill=(0, 80, 0),
+        ),
+        author=TextOnImage(
+            text=f"- {quote_author}",
+            image_draw=image_draw,
+            font="FreeMonoBold.ttf",
+            font_size=16,
+            fill=(0, 0, 0),
+        ),
+        image_size=image.size,
     )
-    author_text_basic = TextOnImage(
-        text=f"- {quote_author}",
-        image_draw=image_draw,
-        font="FreeMonoBold.ttf",
-        font_size=16,
-        fill=(0, 0, 0),
-    )
-    DrawQuoteOnImage(body=body_text_basic, author=author_text_basic, image_size=image.size)
+    quote_on_image.draw()
