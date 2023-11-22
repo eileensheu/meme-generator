@@ -1,3 +1,4 @@
+"""Provide meme generation tools."""
 import argparse
 import os
 import random
@@ -9,7 +10,7 @@ from quote_engine.ingestor import Ingestor
 from meme_engine.meme_engine import MemeEngine
 
 def generate_meme(path=None, body=None, author=None):
-    """ Generate a meme given an path and a quote """
+    """Generate a meme given an path and a quote."""
     img = None
     quote = None
 
@@ -44,6 +45,7 @@ def generate_meme(path=None, body=None, author=None):
 
 
 def parse_args(argv: List[str] = sys.argv[1:]) -> argparse.Namespace:
+    """Parse input arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--path",

@@ -1,3 +1,10 @@
+"""Provide utilities to draw a quote on an image.
+
+'TextOnImage' base class could be use to draw a string with a desired font.
+
+Four concrete classes that realize the 'IngestorInterface' abstract class including:
+'TextIngestor', `DocxIngestor`, `PDFIngestor` and `CSVIngestor`.
+"""
 import random
 import textwrap
 from typing import List, Optional, Tuple
@@ -8,6 +15,8 @@ BODY_AUTHOR_SHIFT = (0, 0)
 
 
 class TextOnImage:
+    """Base class that helps to draw text on an image."""
+
     _text: str
     _image_draw: ImageDraw.ImageDraw
     _image_font: ImageFont.FreeTypeFont
@@ -27,6 +36,14 @@ class TextOnImage:
             font_size: int = 16,
             fill: Optional[Tuple[int, int, int]] = None,
         ) -> None:
+        """Construct a new `TextOnImage` that could be passed to `QuoteOnImage` class as `body` or `author` argument.
+
+        :param text: A string of text, can be quote body or quote author.
+        :param image_draw: A ImageDraw.ImageDraw instance.
+        :param font: A string of font that is avaiable on the system.
+        :param font_size: An integer of font size.
+        :param fill: A tuple of three integers within the range 0~255, representing the RGB values that the text should be colored.
+        """
         self._text = text
         self._image_draw = image_draw
         self._image_font = ImageFont.truetype(font, font_size)
@@ -36,17 +53,24 @@ class TextOnImage:
 
     @property
     def textlength(self) -> int:
+        """Get single-line text length in pixels."""
         return self._textlength
 
     @property
     def multiline_textwidth(self) -> int:
+        """Get multi-line text length in pixels."""
         return self._multiline_textwidth
 
     @property
     def multiline_textheight(self) -> int:
+        """Get multi-line text height in pixels."""
         return self._multiline_textheight
 
-    def set_multiline_text_attributes(self, max_textlength) -> None:
+    def set_multiline_text_attributes(self, max_textlength: int) -> None:
+        """Set the attributes for multi-line text.
+
+        :param max_textlength: An integer of maximum text-length in pixels.
+        """
         max_char = int(max_textlength / self._font_size * 1.5)
         self._multiline_text = textwrap.wrap(self._text, width=max_char)
         self._multiline_textwidth = int(self._image_draw.textlength(self._multiline_text[0], self._image_font, features=["-kern"]))
@@ -54,6 +78,10 @@ class TextOnImage:
         self._multiline_spacing = int(self._font_size / 5)
 
     def draw_on_image(self, anchor_coord: Tuple[int, int]) -> None:
+        """Draw the text on the image.
+
+        :param anchor_coord: A tuple of two integers representing the coordinate on the image
+        """
         _coord = anchor_coord
         _offset = (0, self._font_size)
         for line in self._multiline_text:
@@ -70,16 +98,25 @@ class TextOnImage:
 
 
 class QuoteOnImage:
+    """Base class that helps to draw a quote with its author on an image."""
+
     _body: TextOnImage
     _author: TextOnImage
     _image_size: Tuple[int, int]
 
     def __init__(self, body: TextOnImage, author: TextOnImage, image_size: Tuple[int, int]) -> None:
+        """Construct a new `QuoteOnImage` instance that has a `draw()` method to draw a quote with its author on an image.
+
+        :param body: A TextOnImage instance of quote body
+        :param author: A TextOnImage instance of quote author
+        :param image_size: A tuple of two integers (width, height) representing the size of the image in pixels.
+        """
         self._body = body
         self._author = author
         self._image_size = image_size
 
     def draw(self) -> None:
+        """Draw the quote with its author on the image."""
         max_textlength = self._compute_max_textlength()
         self._body.set_multiline_text_attributes(max_textlength)
         self._author.set_multiline_text_attributes(max_textlength)
