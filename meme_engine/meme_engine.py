@@ -55,14 +55,14 @@ def _add_quote_in_image(image: Image.Image, quote_body: str, quote_author: str) 
         body=TextOnImage(
             text=f"\"{quote_body}\"",
             image_draw=image_draw,
-            font="LiberationMono-Bold.ttf",
+            font="LiberationMono-Bold",
             font_size=20,
             fill=(0, 80, 0),
         ),
         author=TextOnImage(
             text=f"- {quote_author}",
             image_draw=image_draw,
-            font="FreeMonoBold.ttf",
+            font="FreeMonoBold",
             font_size=16,
             fill=(0, 0, 0),
         ),

@@ -7,11 +7,11 @@ Four concrete classes that realize the 'IngestorInterface' abstract class includ
 """
 import random
 import textwrap
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from PIL import ImageDraw, ImageFont
 
-BODY_AUTHOR_SHIFT = (0, 0)
+BODY_AUTHOR_SHIFT = (0, 10)
 
 
 class TextOnImage:
@@ -19,7 +19,7 @@ class TextOnImage:
 
     _text: str
     _image_draw: ImageDraw.ImageDraw
-    _image_font: ImageFont.FreeTypeFont
+    _image_font: Union[ImageFont.ImageFont, ImageFont.FreeTypeFont]
     _font_size: int
     _textlength: int
     _fill: Tuple[int, int, int]
@@ -46,10 +46,17 @@ class TextOnImage:
         """
         self._text = text
         self._image_draw = image_draw
-        self._image_font = ImageFont.truetype(font, font_size)
+        self._image_font = self._set_image_font(font, font_size)
         self._font_size = font_size
-        self._textlength = int(self._image_draw.textlength(self._text, self._image_font, features=["-kern"]))
+        self._textlength = int(self._image_draw.textlength(self._text, self._image_font))
         self._fill = fill if fill else (0, 0, 0)
+
+    def _set_image_font(self, font: str, font_size: int) -> Union[ImageFont.ImageFont, ImageFont.FreeTypeFont]:
+        try:
+            image_font = ImageFont.truetype(font, font_size)
+        except OSError:
+            image_font = ImageFont.load_default(size=font_size)
+        return image_font
 
     @property
     def textlength(self) -> int:
@@ -73,7 +80,7 @@ class TextOnImage:
         """
         max_char = int(max_textlength / self._font_size * 1.5)
         self._multiline_text = textwrap.wrap(self._text, width=max_char)
-        self._multiline_textwidth = int(self._image_draw.textlength(self._multiline_text[0], self._image_font, features=["-kern"]))
+        self._multiline_textwidth = int(self._image_draw.textlength(self._multiline_text[0], self._image_font))
         self._multiline_textheight = self._font_size * len(self._multiline_text)
         self._multiline_spacing = int(self._font_size / 5)
 
