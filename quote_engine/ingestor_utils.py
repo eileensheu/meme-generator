@@ -14,6 +14,7 @@ import pathlib
 
 from typing import Iterable
 from .quote_model import QuoteModel
+from .exception import InvalidFilePath, UnsupportedFileType
 
 
 class IngestorInterface(abc.ABC):
@@ -29,7 +30,10 @@ class IngestorInterface(abc.ABC):
         :param path: A String path of the file that contains quotes.
         :return: A boolean result whether the supplied 'path' file can be digested or not.
         """
-        file_extension = pathlib.Path(path).suffix
+        try:
+            file_extension = pathlib.Path(path).suffix
+        except Exception as e:
+            raise InvalidFilePath(f"Invalid file path \"{path}\".") from e
         return file_extension in cls.allowed_file_extensions
 
     @classmethod
@@ -59,7 +63,7 @@ class TextIngestor(IngestorInterface):
         :return: A iterable of QuoteModel digested from the supplied file.
         """
         if not cls.can_digest(path):
-            raise Exception('Cannot ingest exception')
+            raise UnsupportedFileType(f"Cannot ingest the file \"{path}\".")
 
         with open(path, 'r') as f:
             return QuoteModel.from_linestr_iter_gen(f.readlines())
@@ -80,7 +84,7 @@ class DocxIngestor(IngestorInterface):
         :return: A iterable of QuoteModel digested from the supplied file.
         """
         if not cls.can_digest(path):
-            raise Exception('Cannot ingest exception')
+            raise UnsupportedFileType(f"Cannot ingest the file \"{path}\".")
 
         doc = docx.Document(path)
         return QuoteModel.from_linestr_iter_gen([para.text for para in doc.paragraphs])
@@ -105,13 +109,13 @@ class PDFIngestor(IngestorInterface):
         :return: A iterable of QuoteModel digested from the supplied file.
         """
         if not cls.can_digest(path):
-            raise Exception('Cannot ingest exception')
+            raise UnsupportedFileType(f"Cannot ingest the file \"{path}\".")
 
         tmp_txt_path = "_tmp_pdf_content.txt"
         cmd = ['pdftotext', path, tmp_txt_path]
         process = subprocess.run(cmd)
         if process.returncode != 0:
-            raise RuntimeError(f"Conversion of {path} from .pdf to .txt has failed.")
+            raise Exception(f"Conversion of {path} from .pdf to .txt has failed.")
 
         try:
             with open(tmp_txt_path, 'r') as f:
@@ -135,10 +139,15 @@ class CSVIngestor(IngestorInterface):
         :return: A iterable of QuoteModel digested from the supplied file.
         """
         if not cls.can_digest(path):
-            raise Exception('Cannot ingest exception')
+            raise UnsupportedFileType(f"Cannot ingest the file \"{path}\".")
 
-        data = pd.read_csv(path, header=0).to_dict('split').get('data')
+        try:
+            data = pd.read_csv(path, header=0).to_dict('split').get('data')
+        except Exception as e:
+            raise Exception(f"Failed to ingest quotes from \"{path}\".") from e
+
         if data:
             return [QuoteModel(body=quote[0], author=quote[1]) for quote in data]
         else:
-            raise Exception('Failed to read csv with python \"panda\" library.')
+            print(f"Empty data ingested from \"{path}\" file.")
+            return []

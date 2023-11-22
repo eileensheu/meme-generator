@@ -2,6 +2,8 @@
 from __future__ import annotations
 from typing import Iterable
 
+from .exception import InvalidFileFormat
+
 
 class QuoteModel:
     """A base class to handle a quote.
@@ -33,10 +35,15 @@ class QuoteModel:
         :param iterable: A String Iterable that contains a quote and its author joint by " - ".
         :return: A iterable of `QuoteModel` instances.
         """
+        splitter = " - "
         for linestring in iterable:
             line_clean = linestring.strip().replace("\"", "")
             if line_clean:
-                body, author = line_clean.split(" - ")
+                try:
+                    body, author = line_clean.split(splitter)
+                except Exception as e:
+                    raise InvalidFileFormat(
+                        f"Failed to parse quote body and quote author from the string \"{linestring}\" with \"{splitter}\".") from e
                 yield cls(body=body, author=author)
             else:
                 return
